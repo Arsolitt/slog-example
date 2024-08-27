@@ -17,7 +17,7 @@ func InitLogging() {
 }
 
 // сюда закидываем всякое
-func WithLogValue(ctx context.Context, entryKey string, value string) context.Context {
+func WithLogValue(ctx context.Context, entryKey string, value any) context.Context {
 	if c, ok := ctx.Value(dataKey).(logData); ok {
 		c[entryKey] = value
 		return context.WithValue(ctx, dataKey, c)

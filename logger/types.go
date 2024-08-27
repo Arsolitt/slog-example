@@ -1,6 +1,6 @@
 package logger
 
-type logData map[string]string
+type logData map[string]any
 
 type keyType string
 
@@ -13,4 +13,5 @@ const (
 	UserIDField     = "user_id"
 	RequestIDField  = "request_id"
 	InstanceIDField = "instance_id"
+	RequestObject   = "request_object"
 )
