@@ -1,18 +1,17 @@
-# Пример написания обёртки для кайфа со Slog
+# Example of Writing a Wrapper for Slog with Style
 
+### Features
 
-### Что умеет
+- Put values in context -> Log with context -> Get our values in logs
+- Change log level at runtime with `WithLogLevel`, different parts of the application can have different levels
+- Store field names in constants to avoid mistakes
+- Use `WithLogValue` to pass any values into the context (except functions, they won't be logged, but I didn't add a check)
+- Write helper `WithLog<FIELD>` for each field to get stricter type checking and avoid passing field name each time
+- Collect all context and log it in a single message at the end
+- Wrap errors, store context with the error -> when logging the error, extract this context and get all data
+- Use colored PrettyHandler for local development `isPretty = true`
 
-- Пихаем всякое в контекст -> Логируем с контекстом -> Получаем в логах наше всякое 
-- Меняем уровень логирования в рантайме `WithLogLevel`, в разных частях приложения он может быть разным
-- В константах храним названия полей, чтобы не ошибаться
-- Можем использовать `WithLogValue`, чтобы прокидывать любые значения в контекст (кроме функций, они не залогируются, но я не делал проверку)
-- Можем написать хелпер `WithLog<FIELD>` для каждого поля, чтобы получить более строгую проверку типов и каждый раз не пробрасывать название поля
-- Можем собрать весь контекст и залогировать его одним сообщением в самом конце
-- Оборачиваем ошибки, храним контекст вместе с ошибкой -> при логировании ошибки добываем этот контекст из ошибки и получаем все данные
-
-
-Пример вывода
+Example output
 ```json
 {
   "time": "2024-08-27T12:17:29.045041055+03:00",
@@ -103,4 +102,23 @@
     "Path": "/home"
   }
 }
+```
+
+## Project Structure
+
+- `logger/` - Core logging functionality
+  - `errors.go` - Error wrapping with context
+  - `logger.go` - Main logging functions
+  - `middleware.go` - Slog middleware for context handling
+  - `pretty.go` - Pretty formatter for console output
+  - `types.go` - Type definitions and constants
+- `main.go` - Example usage
+- `Taskfile` - Build and run commands
+
+## Usage
+
+Build and run the example:
+
+```bash
+task run
 ```

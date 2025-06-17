@@ -20,12 +20,13 @@ type Req struct {
 }
 
 func main() {
-	// сюда прокидываем конфигурацию
-	logger.InitLogging()
+	// pass configuration here
+	cfg := logger.NewLoggerConfig(slog.LevelDebug, true, true, true)
+	logger.InitLogging(cfg)
 	ctx := context.Background()
 
 	reqID := "123121"
-	// запихиваем что-то в контекст
+	// put something in the context
 	ctx = logger.WithLogValue(ctx, logger.RequestIDField, reqID)
 	slog.InfoContext(ctx, "New request")
 
@@ -38,19 +39,19 @@ func main() {
 		Path:      "/home",
 	}
 
-	// логируем дебаг
+	// log debug
 	slog.DebugContext(ctx, "Debug message before level changed")
-	// что-то навертели и больше нам дебаг в этом контексте не нужен. НЕ ПОНИМАЮ, БЛОКИРУЮ
+	// we've done something and no longer need debug in this context. DON'T UNDERSTAND, BLOCKING
 	ctx = logger.WithLogLevel(ctx, slog.LevelInfo)
-	// больше не логируем дебаг
+	// no longer logging debug
 	slog.DebugContext(ctx, "Debug message after level changed")
 
-	// можем запихнуть сюда структуру и получить крутой жсончик, который точно так же легко распарсить
+	// we can put a structure here and get a cool JSON that is just as easy to parse
 	ctx = logger.WithLogValue(ctx, logger.RequestObject, request)
 	slog.InfoContext(ctx, "Processing request")
 
 	userId := "42"
-	// используем хелпер для поля, чтобы не прокидывать название и получить типизацию
+	// use helper for field to avoid passing the name and get typing
 	ctx = logger.WithLogUserID(ctx, userId)
 	slog.InfoContext(ctx, "Processing user")
 
@@ -58,16 +59,16 @@ func main() {
 	ctx = logger.WithLogValue(ctx, logger.InstanceIDField, instanceId)
 	slog.InfoContext(ctx, "Processing instance")
 
-	// получаем ошибку
+	// get an error
 	err := errors.New("some error")
-	// врапим ошибку по желанию
+	// wrap error as desired
 	err = fmt.Errorf("error wrapping: %w", err)
-	// ещё раз врапим ошибку, чтобы положить в неё контекст. Можно сделать это один раз в том месте, где ошибка произошла
-	err = logger.WrapError(ctx, err)
-	// можно ещё раз заврапить
+	// wrap the error again to put context in it. This can be done once at the place where the error occurred
+	err = logger.CtxToError(ctx, err)
+	// can wrap again
 	err = fmt.Errorf("another error wrapping: %w", err)
-	// логируем на самом верхнем уровне, получаем всю инфу
-	slog.ErrorContext(logger.ErrorCtx(ctx, err), err.Error())
+	// log at the top level, get all the info
+	slog.ErrorContext(logger.CtxFromError(ctx, err), err.Error())
 
 	slog.InfoContext(ctx, "Done")
 }

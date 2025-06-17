@@ -14,7 +14,7 @@ func (e *errorWithLogCtx) Error() string {
 	return e.next.Error()
 }
 
-func WrapError(ctx context.Context, err error) error {
+func CtxToError(ctx context.Context, err error) error {
 	data := logData{}
 	if d, ok := ctx.Value(dataKey).(logData); ok {
 		data = d
@@ -25,7 +25,7 @@ func WrapError(ctx context.Context, err error) error {
 	}
 }
 
-func ErrorCtx(ctx context.Context, err error) context.Context {
+func CtxFromError(ctx context.Context, err error) context.Context {
 	var e *errorWithLogCtx
 	if errors.As(err, &e) {
 		return context.WithValue(ctx, dataKey, e.data)
