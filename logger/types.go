@@ -1,6 +1,11 @@
 package logger
 
-type logData map[string]any
+import "sync"
+
+type logData struct {
+	mu   sync.RWMutex
+	data map[string]any
+}
 
 type keyType string
 

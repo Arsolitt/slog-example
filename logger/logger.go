@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"sync"
 )
 
 type loggerConfig struct {
@@ -49,20 +50,24 @@ func InitLogging(cfg *loggerConfig) {
 
 // WithLogValue put anything here
 func WithLogValue(ctx context.Context, entryKey string, value any) context.Context {
-	if c, ok := ctx.Value(dataKey).(logData); ok {
-		c[entryKey] = value
+	if c, ok := ctx.Value(dataKey).(*logData); ok {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		c.data[entryKey] = value
 		return context.WithValue(ctx, dataKey, c)
 	}
-	return context.WithValue(ctx, dataKey, logData{entryKey: value})
+	return context.WithValue(ctx, dataKey, &logData{data: map[string]any{entryKey: value}, mu: sync.RWMutex{}})
 }
 
 // WithLogUserID optional for specific field
 func WithLogUserID(ctx context.Context, userID string) context.Context {
-	if c, ok := ctx.Value(dataKey).(logData); ok {
-		c[UserIDField] = userID
+	if c, ok := ctx.Value(dataKey).(*logData); ok {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		c.data[UserIDField] = userID
 		return context.WithValue(ctx, dataKey, c)
 	}
-	return context.WithValue(ctx, dataKey, logData{UserIDField: userID})
+	return context.WithValue(ctx, dataKey, &logData{data: map[string]any{UserIDField: userID}, mu: sync.RWMutex{}})
 }
 
 // WithLogLevel change log level in runtime

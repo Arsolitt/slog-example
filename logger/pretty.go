@@ -15,8 +15,6 @@ type PrettyHandlerOptions struct {
 }
 
 type PrettyHandler struct {
-	// TODO: add options
-	// opts PrettyHandlerOptions
 	slog.Handler
 	l           *log.Logger
 	attrs       []slog.Attr
@@ -31,6 +29,7 @@ func (opts PrettyHandlerOptions) NewPrettyHandler(
 		Handler:     slog.NewJSONHandler(out, opts.SlogOpts),
 		l:           log.New(out, "", 0),
 		withContext: withContext,
+		attrs:       make([]slog.Attr, 0),
 	}
 
 	return h
@@ -50,62 +49,59 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 		level = color.RedString(level)
 	}
 
-	fields := make(map[string]interface{}, r.NumAttrs())
+	fields := make(map[string]interface{}, r.NumAttrs()+len(h.attrs))
 
-	r.Attrs(func(a slog.Attr) bool {
-		fields[a.Key] = a.Value.Any()
-
-		return true
-	})
-
+	// Добавляем attrs из handler'а
 	for _, a := range h.attrs {
 		fields[a.Key] = a.Value.Any()
 	}
 
-	var b []byte
-	var err error
+	// Добавляем attrs из record'а
+	r.Attrs(func(a slog.Attr) bool {
+		fields[a.Key] = a.Value.Any()
+		return true
+	})
 
+	var fieldsStr string
 	if len(fields) > 0 {
-		b, err = json.MarshalIndent(fields, "", "  ")
+		b, err := json.MarshalIndent(fields, "", "  ")
 		if err != nil {
-			return err
+			fieldsStr = color.RedString("error marshaling fields: %v", err)
+		} else {
+			fieldsStr = color.WhiteString(string(b))
 		}
 	}
 
 	timeStr := r.Time.Format("[15:05:05.000]")
 	msg := color.CyanString(r.Message)
 
-	h.l.Println(
-		timeStr,
-		level,
-		msg,
-		color.WhiteString(string(b)),
-	)
-
+	h.l.Println(timeStr, level, msg, fieldsStr)
 	return nil
 }
 
 func (h *PrettyHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	if h.withContext {
-		return &PrettyHandler{
-			Handler:     h.Handler,
-			l:           h.l,
-			attrs:       attrs,
-			withContext: h.withContext,
-		}
+	if !h.withContext {
+		return h
 	}
+
+	// Объединяем существующие attrs с новыми
+	newAttrs := make([]slog.Attr, 0, len(h.attrs)+len(attrs))
+	newAttrs = append(newAttrs, h.attrs...)
+	newAttrs = append(newAttrs, attrs...)
+
 	return &PrettyHandler{
 		Handler:     h.Handler,
 		l:           h.l,
+		attrs:       newAttrs,
 		withContext: h.withContext,
 	}
 }
 
 func (h *PrettyHandler) WithGroup(name string) slog.Handler {
-	// TODO: implement
 	return &PrettyHandler{
 		Handler:     h.Handler.WithGroup(name),
 		l:           h.l,
+		attrs:       h.attrs,
 		withContext: h.withContext,
 	}
 }

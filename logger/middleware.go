@@ -5,34 +5,36 @@ import (
 	"log/slog"
 )
 
-type contextMiddleware struct {
+type ContextMiddleware struct {
 	next slog.Handler
 }
 
-func NewContextMiddleware(next slog.Handler) *contextMiddleware {
-	return &contextMiddleware{next: next}
+func NewContextMiddleware(next slog.Handler) *ContextMiddleware {
+	return &ContextMiddleware{next: next}
 }
 
-func (h *contextMiddleware) Enabled(ctx context.Context, rec slog.Level) bool {
+func (h *ContextMiddleware) Enabled(ctx context.Context, rec slog.Level) bool {
 	if level, ok := ctx.Value(levelKey).(slog.Level); ok {
 		return rec >= level
 	}
 	return h.next.Enabled(ctx, rec)
 }
 
-func (h *contextMiddleware) Handle(ctx context.Context, rec slog.Record) error {
-	if c, ok := ctx.Value(dataKey).(logData); ok {
-		for k, v := range c {
+func (h *ContextMiddleware) Handle(ctx context.Context, rec slog.Record) error {
+	if c, ok := ctx.Value(dataKey).(*logData); ok {
+		c.mu.RLock()
+		defer c.mu.RUnlock()
+		for k, v := range c.data {
 			rec.Add(k, v)
 		}
 	}
 	return h.next.Handle(ctx, rec)
 }
 
-func (h *contextMiddleware) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return &contextMiddleware{next: h.next.WithAttrs(attrs)}
+func (h *ContextMiddleware) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return &ContextMiddleware{next: h.next.WithAttrs(attrs)}
 }
 
-func (h *contextMiddleware) WithGroup(name string) slog.Handler {
-	return &contextMiddleware{next: h.next.WithGroup(name)}
+func (h *ContextMiddleware) WithGroup(name string) slog.Handler {
+	return &ContextMiddleware{next: h.next.WithGroup(name)}
 }
